@@ -38,6 +38,15 @@ using namespace jp_private;
 using namespace jp;
 
 // Parse json metadata using json.hpp (in thirdparty/ folder)
+/**
+ * @brief 解析插件元数据
+ *
+ * 将给定的插件元数据解析为 PluginInfoStd 对象。
+ *
+ * @param metadata 插件元数据字符串
+ *
+ * @return 解析后的插件信息对象
+ */
 PluginInfoStd PlugMgrPrivate::parseMetadata(const char *metadata)
 {
     try
@@ -77,6 +86,16 @@ PluginInfoStd PlugMgrPrivate::parseMetadata(const char *metadata)
 // Checks if the dependencies required by the plugin exists and are compatible
 // with the required version.
 // If all dependencies match, mark the plugin as "compatible"
+/**
+ * @brief 检查插件依赖项
+ *
+ * 检查给定插件的依赖项是否存在且版本兼容，如果满足条件则返回成功状态码，否则返回相应的错误状态码。
+ *
+ * @param plugin 插件指针引用
+ * @param callbackFunc 回调函数
+ *
+ * @return 返回状态码
+ */
 ReturnCode PlugMgrPrivate::checkDependencies(PluginPtr& plugin, PluginManager::callback callbackFunc)
 {
     if(!plugin->dependenciesExists.indeterminate())
@@ -115,12 +134,27 @@ ReturnCode PlugMgrPrivate::checkDependencies(PluginPtr& plugin, PluginManager::c
     return ReturnCode::SUCCESS;
 }
 
+/**
+ * @brief 按照加载顺序加载插件
+ *
+ * 遍历加载顺序列表，按照列表中的顺序依次加载插件。
+ */
 void PlugMgrPrivate::loadPluginsInOrder()
 {
     for(const std::string& name : loadOrderList)
         loadPlugin(pluginsMap.at(name));
 }
 
+
+/**
+ * @brief 加载插件
+ *
+ * 从给定的插件指针中加载插件，并设置其创建器函数和其他相关属性。
+ *
+ * @param plugin 插件指针的引用
+ *
+ * TODO: 应该有记录已经加载过成功/失败的标志, 提供查询和卸载使用
+ */
 void PlugMgrPrivate::loadPlugin(PluginPtr& plugin)
 {
     plugin->creator = *(plugin->lib.get<Plugin::iplugin_create_t*>("jp_createPlugin"));
@@ -141,6 +175,13 @@ void PlugMgrPrivate::loadPlugin(PluginPtr& plugin)
     plugin->iplugin->loaded();
 }
 
+/**
+ * @brief 按顺序卸载插件
+ *
+ * 按逆序卸载插件，并返回是否全部卸载成功。
+ *
+ * @return 如果全部卸载成功返回 true，否则返回 false
+ */
 bool PlugMgrPrivate::unloadPluginsInOrder()
 {
     // Unload plugins in reverse order
@@ -168,6 +209,15 @@ bool PlugMgrPrivate::unloadPluginsInOrder()
 }
 
 // Return true if the plugin is successfully unloaded
+/**
+ * @brief 卸载插件
+ *
+ * 从插件管理器中卸载指定的插件。
+ *
+ * @param plugin 插件指针的引用
+ *
+ * @return 如果插件成功卸载则返回 true，否则返回 false
+ */
 bool PlugMgrPrivate::unloadPlugin(PluginPtr& plugin)
 {
     if(plugin->iplugin)
@@ -183,6 +233,18 @@ bool PlugMgrPrivate::unloadPlugin(PluginPtr& plugin)
 }
 
 // Static
+/**
+ * @brief 处理请求
+ *
+ * 根据发送者、请求代码以及数据参数，处理对应的请求，并返回处理结果。
+ *
+ * @param sender 发送者
+ * @param code 请求代码
+ * @param data 数据指针
+ * @param dataSize 数据大小指针
+ *
+ * @return 处理结果
+ */
 uint16_t PlugMgrPrivate::handleRequest(const char *sender,
                                        uint16_t code,
                                        void **data,
@@ -261,6 +323,16 @@ uint16_t PlugMgrPrivate::handleRequest(const char *sender,
 }
 
 // Static
+/**
+ * @brief 获取非依赖插件对象
+ *
+ * 根据发送者和插件名称，获取非依赖插件的插件对象指针。
+ *
+ * @param sender 发送者
+ * @param pluginName 插件名称
+ *
+ * @return 插件对象指针，若未找到则返回 nullptr
+ */
 IPlugin* PlugMgrPrivate::getNonDepPlugin(const char* sender, const char* pluginName)
 {
     PlugMgrPrivate *_p = PluginManager::instance()._p;

@@ -248,6 +248,18 @@ private:
     const IPlugin& operator=(const IPlugin&) = delete;
 
     // Private implementation of sendRequest
+    /**
+     * @brief 发送请求的实现函数
+     *
+     * 根据给定的接收者、请求代码和数据，发送请求并返回响应。
+     *
+     * @param receiver 接收者指针
+     * @param code 请求代码
+     * @param data 数据指针的指针
+     * @param dataSize 数据大小的指针
+     *
+     * @return 响应结果
+     */
     uint16_t sendRequestImpl(const char *receiver, uint16_t code, void **data, uint32_t *dataSize)
     {
         // Send to manager (receiver is null)
@@ -330,11 +342,33 @@ namespace jp_private
 namespace CStringUtil
 {
 // Returns true if str contains c
+/**
+ * @brief 判断字符串中是否包含指定字符
+ *
+ * 在给定的字符串中判断是否包含指定的字符。
+ *
+ * @param str 字符串指针
+ * @param c   待查找的字符
+ *
+ * @return 如果字符串中包含指定字符，则返回 true；否则返回 false
+ */
 constexpr inline bool contains(const char* str, const char c)
 {
     return (*str == 0) ? false : (str[0] == c ? true: contains(++str, c));
 }
 // Returns true if str contains only characters from 'allowed'
+/**
+ * @brief 判断字符串是否只包含指定字符集中的字符
+ *
+ * 检查给定的字符串 `str` 是否仅包含字符集 `allowed` 中的字符。
+ * 如果字符串 `str` 为空字符串（即第一个字符为字符串结束符 '\0'），则返回 `true`；
+ * 否则，逐个检查 `str` 中的字符是否在 `allowed` 中出现，若全部出现则返回 `true`，否则返回 `false`。
+ *
+ * @param str 待检查的字符串
+ * @param allowed 允许的字符集
+ *
+ * @return 如果字符串 `str` 仅包含字符集 `allowed` 中的字符，返回 `true`；否则返回 `false`
+ */
 constexpr inline bool containsOnly(const char* str, const char* allowed)
 {
     return (*str == 0) ? true : (contains(allowed, str[0]) ? containsOnly(++str, allowed) : false);

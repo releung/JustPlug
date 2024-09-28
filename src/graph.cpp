@@ -27,11 +27,27 @@
 using namespace jp_private;
 
 // Constructor
+/**
+ * @brief 构造函数
+ *
+ * 使用给定的节点列表初始化图对象。
+ *
+ * @param nodeList 节点列表的引用
+ */
 Graph::Graph(const NodeList& nodeList): _nodeList(nodeList)
 {
 
 }
 
+/**
+ * @brief 拓扑排序
+ *
+ * 对图进行拓扑排序，并返回排序后的节点名称列表。
+ *
+ * @param error 是否存在环的标志，如果存在环，则返回 true；否则返回 false
+ *
+ * @return 排序后的节点名称列表
+ */
 Graph::NodeNamesList Graph::topologicalSort(bool& error)
 {
     NodeNamesList list;
@@ -57,6 +73,16 @@ Graph::NodeNamesList Graph::topologicalSort(bool& error)
 //
 
 // implement depth search algorithm
+/**
+ * @brief 访问图中的一个节点
+ *
+ * 根据给定的节点和节点名称列表，访问图中的一个节点，并将其标记为已访问。
+ *
+ * @param node 节点引用
+ * @param list 节点名称列表指针
+ *
+ * @return 如果节点已访问或不是有向无环图，则返回 false；否则返回 true
+ */
 bool Graph::visitNode(Node& node, NodeNamesList* list)
 {
     if(node.flag == MARK_PERMANENT)

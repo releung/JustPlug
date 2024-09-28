@@ -37,6 +37,13 @@ namespace jp_private
 namespace fsutil
 {
 
+/**
+ * @brief 获取库文件扩展名
+ *
+ * 根据不同的平台，返回对应的库文件扩展名。
+ *
+ * @return 返回库文件扩展名的字符串
+ */
 std::string libraryExtension()
 {
 #if defined(CONFINFO_PLATFORM_WIN32) || defined(CONFINFO_PLATFORM_CYGWIN)
@@ -48,11 +55,30 @@ std::string libraryExtension()
 #endif
 }
 
+/**
+ * @brief 获取库文件后缀
+ *
+ * 返回库文件的扩展名后缀，格式为"." + 库文件扩展名。
+ *
+ * @return 库文件后缀的字符串
+ */
 std::string librarySuffix()
 {
     return "." + libraryExtension();
 }
 
+/**
+ * @brief 列出指定目录下的文件
+ *
+ * 遍历指定目录，将符合条件的文件路径添加到文件列表中。
+ *
+ * @param rootDir 根目录路径
+ * @param filesList 文件列表指针
+ * @param extFilter 文件扩展名过滤器，为空则不过滤
+ * @param recursive 是否递归遍历子目录
+ *
+ * @return 是否成功遍历目录并添加文件路径到列表中
+ */
 bool listFilesInDir(const std::string& rootDir,
                     PathList* filesList,
                     const std::string& extFilter,
@@ -103,6 +129,18 @@ bool listFilesInDir(const std::string& rootDir,
     return success;
 }
 
+/**
+ * @brief 列出指定目录下的库文件
+ *
+ * 在指定的根目录下，列出所有库文件，并将结果存储在给定的文件列表中。
+ * 如果需要递归搜索子目录，则设置递归参数为 true。
+ *
+ * @param rootDir 根目录路径
+ * @param filesList 存储文件列表的指针
+ * @param recursive 是否递归搜索子目录
+ *
+ * @return 如果成功列出文件，则返回 true；否则返回 false
+ */
 bool listLibrariesInDir(const std::string& rootDir,
                         PathList* filesList,
                         bool recursive)
@@ -110,6 +148,13 @@ bool listLibrariesInDir(const std::string& rootDir,
     return listFilesInDir(rootDir, filesList, libraryExtension(), recursive);
 }
 
+/**
+ * @brief 获取应用程序目录
+ *
+ * 通过调用 wai_getExecutablePath 函数获取应用程序的可执行文件路径，并返回其所在的目录路径。
+ *
+ * @return 应用程序目录路径的字符串表示，如果获取失败则返回空字符串。
+ */
 std::string appDir()
 {
     const int length = wai_getExecutablePath(nullptr, 0, nullptr);

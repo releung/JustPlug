@@ -40,6 +40,15 @@ namespace StringUtil
 
 // strdup is not part of the C standard but part of POSIX
 // So, define the function here
+/**
+ * @brief 自定义字符串复制函数
+ *
+ * 使用 malloc 分配内存，并复制给定的字符串内容到新的内存空间中。
+ *
+ * @param s 指向待复制的字符串的指针
+ *
+ * @return 指向新分配内存的指针，复制了原始字符串的内容；如果分配失败则返回 nullptr
+ */
 inline char* strdup_custom(const char* s)
 {
     size_t size = strlen(s) + 1;

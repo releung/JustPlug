@@ -34,6 +34,13 @@ using namespace jp_private;
 /***** PluginInfoStd class ***************************************************/
 /*****************************************************************************/
 
+/**
+ * @brief 将 PluginInfoStd 转换为 PluginInfo
+ *
+ * 将 PluginInfoStd 对象转换为 jp::PluginInfo 对象，并返回转换后的结果。
+ *
+ * @return 转换后的 jp::PluginInfo 对象
+ */
 jp::PluginInfo PluginInfoStd::toPluginInfo()
 {
     jp::PluginInfo info;
@@ -59,6 +66,13 @@ jp::PluginInfo PluginInfoStd::toPluginInfo()
     return info;
 }
 
+/**
+ * @brief 将 PluginInfoStd 对象转换为字符串
+ *
+ * 将 PluginInfoStd 对象转换为包含插件信息的字符串。
+ *
+ * @return 包含插件信息的字符串
+ */
 std::string PluginInfoStd::toString()
 {
     if(name.empty())
@@ -83,6 +97,13 @@ std::string PluginInfoStd::toString()
 /*****************************************************************************/
 
 // Destructor
+/**
+ * @brief 析构函数
+ *
+ * 当 Plugin 对象被销毁时，自动调用此析构函数。
+ * 用于确保插件已被正确卸载（尽管这种情况不应该发生）。
+ * 如果插件尚未卸载，则先调用插件的 aboutToBeUnloaded 方法，然后重置插件指针并卸载插件库。
+ */
 Plugin::~Plugin()
 {
     // Just in case the plugins have not been unloaded (should not happen)

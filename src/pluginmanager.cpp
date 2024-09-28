@@ -72,6 +72,15 @@ const char* ReturnCode::message() const
 }
 
 // Static
+/**
+ * @brief 返回错误码对应的消息
+ *
+ * 根据给定的错误码，返回对应的错误消息。
+ *
+ * @param code 错误码对象
+ *
+ * @return 错误消息字符串的指针
+ */
 const char* ReturnCode::message(const ReturnCode &code)
 {
     switch(code.type)
@@ -114,10 +123,22 @@ const char* ReturnCode::message(const ReturnCode &code)
 /* PluginManager class *******************************************************/
 /*****************************************************************************/
 
+/**
+ * @brief 插件管理器构造函数
+ *
+ * 初始化插件管理器，并创建一个新的插件管理器私有对象。
+ */
 PluginManager::PluginManager() : _p(new PlugMgrPrivate(this))
 {
 }
 
+/**
+ * @brief 析构函数
+ *
+ * 当PluginManager对象被销毁时，调用此析构函数来释放资源。
+ * 如果插件映射表不为空，则卸载所有插件。
+ * 最后删除_p指针所指向的对象。
+ */
 PluginManager::~PluginManager()
 {
     if(!_p->pluginsMap.empty())
@@ -126,17 +147,38 @@ PluginManager::~PluginManager()
 }
 
 // Static
+/**
+ * @brief 获取 PluginManager 实例
+ *
+ * 返回一个 PluginManager 类的单例实例。
+ *
+ * @return PluginManager 类的单例实例引用
+ */
 PluginManager& PluginManager::instance()
 {
     static PluginManager inst;
     return inst;
 }
 
+/**
+ * @brief 设置日志流
+ *
+ * 将给定的日志流设置为插件管理器的日志流。
+ *
+ * @param logStream 日志流引用
+ */
 void PluginManager::setLogStream(std::ostream& logStream)
 {
     _p->log = std::ref(logStream);
 }
 
+/**
+ * @brief 启用或禁用日志输出
+ *
+ * 根据传入的布尔值启用或禁用日志输出功能。
+ *
+ * @param enable 是否启用日志输出
+ */
 void PluginManager::enableLogOutput(const bool &enable)
 {
     if(!_p->useLog && enable)
@@ -144,11 +186,27 @@ void PluginManager::enableLogOutput(const bool &enable)
     _p->useLog = enable;
 }
 
+/**
+ * @brief 禁用日志输出
+ *
+ * 禁用插件管理器的日志输出功能。
+ */
 void PluginManager::disableLogOutput()
 {
     enableLogOutput(false);
 }
 
+/**
+ * @brief 搜索插件
+ *
+ * 在指定的插件目录中搜索插件，并根据递归选项进行递归搜索。
+ *
+ * @param pluginDir 插件目录路径
+ * @param recursive 是否递归搜索子目录
+ * @param callbackFunc 回调函数，用于处理搜索过程中的事件
+ *
+ * @return 返回搜索结果的状态码
+ */
 ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool recursive, callback callbackFunc)
 {
     if(_p->useLog)
@@ -227,11 +285,30 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
     return ReturnCode::SEARCH_NOTHING_FOUND;
 }
 
+/**
+ * @brief 搜索插件
+ *
+ * 在指定的插件目录下搜索插件，并调用回调函数处理每个找到的插件。
+ *
+ * @param pluginDir 插件目录路径
+ * @param callbackFunc 回调函数，用于处理找到的插件
+ *
+ * @return 返回操作结果，成功返回 ReturnCode::Success，失败返回其他错误码
+ */
 ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, callback callbackFunc)
 {
     return searchForPlugins(pluginDir, false, callbackFunc);
 }
 
+/**
+ * @brief 注册主插件
+ *
+ * 将指定的插件名注册为主插件。如果当前没有主插件，并且插件存在，则将其注册为主插件。
+ *
+ * @param pluginName 插件名
+ *
+ * @return 返回操作结果，成功返回 ReturnCode::SUCCESS，否则返回 ReturnCode::UNKNOWN_ERROR
+ */
 ReturnCode PluginManager::registerMainPlugin(const std::string &pluginName)
 {
     if(_p->mainPluginName.empty() && hasPlugin(pluginName))
@@ -243,6 +320,17 @@ ReturnCode PluginManager::registerMainPlugin(const std::string &pluginName)
     return ReturnCode::UNKNOWN_ERROR;
 }
 
+/**
+ * @brief 加载插件
+ *
+ * 遍历所有插件，检查其依赖项是否已找到，并创建一个用于图排序的节点列表。
+ * 注意：即使已经调用了loadPlugins()，图也会重新创建。
+ *
+ * @param tryToContinue 是否尝试继续加载其他插件（如果某个插件加载失败）
+ * @param callbackFunc 回调函数指针
+ *
+ * @return 返回操作结果，成功返回`ReturnCode::SUCCESS`，失败返回对应的错误码
+ */
 ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
 {
     // First step: For each plugins, check if it's dependencies have been found
@@ -320,11 +408,31 @@ ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
     return ReturnCode::SUCCESS;
 }
 
+/**
+ * @brief 加载插件
+ *
+ * 加载插件，并调用回调函数处理加载结果。
+ *
+ * @param callbackFunc 回调函数指针，用于处理插件加载结果
+ *
+ * @return 返回加载插件的结果
+ */
 ReturnCode PluginManager::loadPlugins(callback callbackFunc)
 {
     return loadPlugins(true, callbackFunc);
 }
 
+/**
+ * @brief 卸载插件
+ *
+ * 卸载已加载的插件，并在卸载过程中调用回调函数。
+ *
+ * @param callbackFunc 回调函数指针
+ *
+ * @return 返回操作结果码
+ *   - ReturnCode::SUCCESS：卸载成功
+ *   - ReturnCode::UNLOAD_NOT_ALL：未卸载所有插件
+ */
 ReturnCode PluginManager::unloadPlugins(callback callbackFunc)
 {
     if(_p->useLog)
@@ -345,22 +453,50 @@ ReturnCode PluginManager::unloadPlugins(callback callbackFunc)
 //
 
 // Static
+/**
+ * @brief 返回应用程序目录
+ *
+ * 返回当前应用程序所在的目录路径。
+ *
+ * @return 应用程序目录路径的字符串表示
+ */
 std::string PluginManager::appDirectory()
 {
     return fsutil::appDir();
 }
 
 // Static
+/**
+ * @brief 插件API
+ *
+ * 返回插件API的字符串。
+ *
+ * @return 插件API的字符串
+ */
 std::string PluginManager::pluginApi()
 {
     return JP_PLUGIN_API;
 }
 
+/**
+ * @brief 获取插件数量
+ *
+ * 返回当前插件管理器中已注册的插件数量。
+ *
+ * @return 插件数量
+ */
 size_t PluginManager::pluginsCount() const
 {
     return _p->pluginsMap.size();
 }
 
+/**
+ * @brief 获取插件列表
+ *
+ * 返回插件管理器中所有插件的名称列表。
+ *
+ * @return 插件名称列表
+ */
 std::vector<std::string> PluginManager::pluginsList() const
 {
     std::vector<std::string> nameList;
@@ -370,26 +506,70 @@ std::vector<std::string> PluginManager::pluginsList() const
     return nameList;
 }
 
+/**
+ * @brief 获取插件位置
+ *
+ * 返回插件的存储位置列表。
+ *
+ * @return 插件位置列表
+ */
 std::vector<std::string> PluginManager::pluginsLocation() const
 {
     return _p->locations;
 }
 
+/**
+ * @brief 判断插件管理器中是否存在指定名称的插件
+ *
+ * 在插件管理器中查找指定名称的插件，判断是否存在。
+ *
+ * @param name 插件名称
+ *
+ * @return 如果存在指定名称的插件，则返回 true；否则返回 false
+ */
 bool PluginManager::hasPlugin(const std::string &name) const
 {
     return _p->pluginsMap.count(name) == 1;
 }
 
+/**
+ * @brief 判断插件是否存在并且版本兼容
+ *
+ * 根据插件名称和最小版本号，判断插件是否存在并且其版本与最小版本号兼容。
+ *
+ * @param name 插件名称
+ * @param minVersion 最小版本号
+ *
+ * @return 如果插件存在且版本兼容，则返回 true；否则返回 false
+ */
 bool PluginManager::hasPlugin(const std::string &name, const std::string &minVersion) const
 {
     return hasPlugin(name) && Version(_p->pluginsMap[name]->info.version).compatible(minVersion);
 }
 
+/**
+ * @brief 判断插件是否已加载
+ *
+ * 根据插件名称判断插件是否已加载。
+ *
+ * @param name 插件名称
+ *
+ * @return 如果插件已加载，则返回 true；否则返回 false
+ */
 bool PluginManager::isPluginLoaded(const std::string &name) const
 {
     return hasPlugin(name) && _p->pluginsMap[name]->lib.isLoaded() && _p->pluginsMap[name]->iplugin;
 }
 
+/**
+ * @brief 获取插件对象
+ *
+ * 根据插件名称获取对应的插件对象。
+ *
+ * @param name 插件名称
+ *
+ * @return 插件对象的共享指针，如果插件不存在则返回空指针
+ */
 std::shared_ptr<IPlugin> PluginManager::pluginObject(const std::string& name) const
 {
     if(!hasPlugin(name))
@@ -398,6 +578,15 @@ std::shared_ptr<IPlugin> PluginManager::pluginObject(const std::string& name) co
     return _p->pluginsMap[name]->iplugin;
 }
 
+/**
+ * @brief 获取插件信息
+ *
+ * 根据插件名称获取插件的信息。
+ *
+ * @param name 插件名称
+ *
+ * @return 插件信息
+ */
 PluginInfo PluginManager::pluginInfo(const std::string &name) const
 {
     if(!hasPlugin(name))

@@ -31,6 +31,14 @@
 #include <memory> // for std::shared_ptr
 #include <ostream> // for std::ostream
 
+//定义宏使输出文件名和行号
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#define SPDLOG_TRACE_ON
+
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+// #include <spdlog/sinks/rotating_file_sink.h>
+
 #include "plugininfo.h"
 #include "iplugin.h"
 
@@ -192,7 +200,8 @@ public:
      * @param logStream The stream to use
      * @see enableLogOutput()
      */
-    void setLogStream(std::ostream &logStream);
+    // void setLogStream(std::ostream &logStream);
+    void setLogger(std::shared_ptr<spdlog::logger> logger);
 
     /**
      * @brief Search for all JustPlug plugins in pluginDir.

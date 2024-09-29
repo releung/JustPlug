@@ -53,13 +53,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -fvisibility=hidden")
 
 if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -fPIC")
 endif()
 
 #
 # Include thirdparty folder
 #
 include_directories(thirdparty)
+
+add_subdirectory(thirdparty/spdlog)
 
 # Add whereami dependency
 file(
@@ -99,5 +101,5 @@ add_library(
 )
 
 if(UNIX)
-    target_link_libraries(${JP_SO_NAME} dl)
+    target_link_libraries(${JP_SO_NAME} dl spdlog::spdlog)
 endif()

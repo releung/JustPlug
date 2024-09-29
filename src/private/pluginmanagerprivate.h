@@ -45,7 +45,15 @@ namespace jp_private
 // (used to ensure ABI compatibility if implementation changes)
 struct PlugMgrPrivate
 {
-    PlugMgrPrivate(jp::PluginManager* plugMgr): pluginManager(plugMgr) {}
+    PlugMgrPrivate(jp::PluginManager* plugMgr): pluginManager(plugMgr) {
+
+        // 默认使用 console logger
+        log = spdlog::stdout_color_mt("console");
+        log->set_level(spdlog::level::info);
+        // log->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%@,%!][%l] : %v"); // %@ 是绝对路径
+        log->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%s:%#] [%l] : %v");
+
+    }
     ~PlugMgrPrivate() {}
 
     jp::PluginManager* pluginManager;
@@ -60,7 +68,8 @@ struct PlugMgrPrivate
 
     // Stream used to print log outputs.
     // (default set to std::cout)
-    std::reference_wrapper<std::ostream> log = std::ref(std::cout);
+    // std::reference_wrapper<std::ostream> log = std::ref(std::cout);
+    std::shared_ptr<spdlog::logger> log;
 
     bool useLog = true; // log output is enable by default
 

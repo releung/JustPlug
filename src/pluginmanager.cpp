@@ -167,9 +167,18 @@ PluginManager& PluginManager::instance()
  *
  * @param logStream 日志流引用
  */
-void PluginManager::setLogStream(std::ostream& logStream)
+// void PluginManager::setLogStream(std::ostream& logStream)
+// {
+//     _p->log = std::ref(logStream);
+// }
+void PluginManager::setLogger(std::shared_ptr<spdlog::logger> logger)
 {
-    _p->log = std::ref(logStream);
+    if (logger) {
+        _p->log = logger;
+    } else {
+        // 处理空指针情况，恢复默认 logger
+        _p->log = spdlog::stdout_color_mt("console");
+    }
 }
 
 /**
@@ -182,7 +191,7 @@ void PluginManager::setLogStream(std::ostream& logStream)
 void PluginManager::enableLogOutput(const bool &enable)
 {
     if(!_p->useLog && enable)
-        _p->log.get() << "Enable log output" << std::endl;
+        SPDLOG_LOGGER_INFO(_p->log, "Enable log output");
     _p->useLog = enable;
 }
 
@@ -210,7 +219,7 @@ void PluginManager::disableLogOutput()
 ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool recursive, callback callbackFunc)
 {
     if(_p->useLog)
-        _p->log.get() << "Search for plugins in " << pluginDir << std::endl;
+        SPDLOG_LOGGER_INFO(_p->log, "Search for plugins in {}", pluginDir);
 
     bool atLeastOneFound = false;
     fsutil::PathList libList;
@@ -236,7 +245,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
         {
             // This is a JustPlug library
             if(_p->useLog)
-                _p->log.get() << "Found library at: " << path << std::endl;
+                SPDLOG_LOGGER_INFO(_p->log, "Found library at: {}", path);
             plugin->path = path;
             std::string name = plugin->lib.get<const char*>("jp_name");;
 
@@ -250,7 +259,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
             }
 
             if(_p->useLog)
-                _p->log.get() << "Library name: " << name << std::endl;
+                SPDLOG_LOGGER_INFO(_p->log, "Library name: {}", name);
 
             PluginInfoStd info = _p->parseMetadata(plugin->lib.get<const char[]>("jp_metadata"));
             if(info.name.empty())
@@ -264,7 +273,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
             plugin->info = info;
             // Print plugin's info
             if(_p->useLog)
-                _p->log.get() << info.toString() << std::endl;
+                SPDLOG_LOGGER_INFO(_p->log, info.toString());
 
             _p->pluginsMap[name] = plugin;
             atLeastOneFound = true;
@@ -338,7 +347,7 @@ ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
     // NOTE: The graph is re-created even if loadPlugins() was already called.
 
     if(_p->useLog)
-        _p->log.get() << "Load plugins ..." << std::endl;
+        SPDLOG_LOGGER_INFO(_p->log, "Load plugins ...");
 
     Graph::NodeList nodeList;
     nodeList.reserve(_p->pluginsMap.size());
@@ -392,9 +401,9 @@ ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
 
     if(_p->useLog)
     {
-        _p->log.get() << "Load order:" << std::endl;
+        SPDLOG_LOGGER_INFO(_p->log, "Load order:");
         for(auto const& name : _p->loadOrderList)
-            _p->log.get() << " - " << name << std::endl;
+            SPDLOG_LOGGER_INFO(_p->log, " - {}", name);
     }
 
     // Fourth step: load plugins
@@ -436,7 +445,7 @@ ReturnCode PluginManager::loadPlugins(callback callbackFunc)
 ReturnCode PluginManager::unloadPlugins(callback callbackFunc)
 {
     if(_p->useLog)
-        _p->log.get() << "Unload plugins ..." << std::endl;
+        SPDLOG_LOGGER_INFO(_p->log, "Unload plugins ...");
 
     if(!_p->unloadPluginsInOrder())
     {

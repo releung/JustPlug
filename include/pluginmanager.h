@@ -31,13 +31,19 @@
 #include <memory> // for std::shared_ptr
 #include <ostream> // for std::ostream
 
+#if not defined(SPDLOG_ACTIVE_LEVEL)
 //定义宏使输出文件名和行号
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#endif
+
+#if not defined(SPDLOG_TRACE_ON)
 #define SPDLOG_TRACE_ON
+#endif
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 // #include <spdlog/sinks/rotating_file_sink.h>
+#include "spdlog/sinks/basic_file_sink.h"
 
 #include "plugininfo.h"
 #include "iplugin.h"

@@ -33,7 +33,8 @@
 
 #if not defined(SPDLOG_ACTIVE_LEVEL)
 //定义宏使输出文件名和行号
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LOGGER_TRACE
 #endif
 
 #if not defined(SPDLOG_TRACE_ON)
@@ -48,6 +49,51 @@
 #include "plugininfo.h"
 #include "iplugin.h"
 
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>  // for supporting << operator overloading with fmt
+#include <memory>
+
+#define JP_RELATIVE_PATH(file) JP_RELATIVE_PATH_IMPL(file, PROJECT_ROOT)
+#define JP_RELATIVE_PATH_IMPL(file, root)                                          \
+    ((const char*)(file) + (sizeof(root) - 1))
+
+// Helper to handle logger calls for shared pointers, raw pointers, and references
+#define JP_LOGGER_CALL(logger, level, ...)                                         \
+    do {                                                                           \
+        if (logger) {                                                              \
+            logger->log(spdlog::source_loc{__FILE__, __LINE__, __FUNCTION__}, level, __VA_ARGS__); \
+        }                                                                          \
+    } while (0)
+
+#if defined(NDEBUG)
+// 在发布模式下，LOG_INFO不会编译进来
+#define JP_LOG_INFO(log, message, ...)
+#else
+// 在调试模式下编译INFO日志
+#define JP_LOG_INFO(log, message, ...)                                 \
+    do {                                                               \
+        constexpr auto relative_path = JP_RELATIVE_PATH(__FILE__);     \
+        JP_LOGGER_CALL(log, spdlog::level::info,                       \
+                      "[{}:{}] " message, relative_path, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+#endif
+
+#define JP_LOG_WARNING(log, message, ...)                              \
+    do {                                                               \
+        constexpr auto relative_path = JP_RELATIVE_PATH(__FILE__);     \
+        JP_LOGGER_CALL(log, spdlog::level::warn,                       \
+                      "[{}:{}] " message, relative_path, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+
+#define JP_LOG_ERROR(log, message, ...)                                \
+    do {                                                               \
+        constexpr auto relative_path = JP_RELATIVE_PATH(__FILE__);     \
+        JP_LOGGER_CALL(log, spdlog::level::err,                        \
+                      "[{}:{}] " message, relative_path, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+
+
+
 namespace jp_private
 {
 struct PlugMgrPrivate;
@@ -55,7 +101,6 @@ struct PlugMgrPrivate;
 
 namespace jp
 {
-
 /**
  * @brief The ReturnCode struct.
  *
@@ -341,6 +386,30 @@ public:
      * @return The PluginInfo object.
      */
     PluginInfo pluginInfo(const std::string& name) const;
+
+    /**
+     * @brief Get the PluginInfo object for the specified plugin
+     * @note load the plugin if it's not loaded.
+     * @param pluginName The name of the plugin
+     * @return bool true if the plugin is loaded, else returns false (not loaded or not found)
+     */
+    bool loadPlugin(const std::string& pluginName);
+
+    /**
+     * @brief Load the plugin from the specified path.
+     * @note load the plugin if it's not loaded.
+     * @param pluginPath The path of the plugin
+     * @return bool true if the plugin is loaded, else returns false (not loaded or not found)
+     */
+    bool loadPluginFromPath(const std::string& pluginPath);
+
+    /**
+     * @brief Unload the specified plugin.
+     * @note unload the plugin if it's loaded.
+     * @param pluginName The name of the plugin
+     * @return bool true if the plugin is unloaded, else returns false (not loaded or not found)
+     */
+    bool unloadPlugin(const std::string& pluginName);
 
 private:
     PluginManager();

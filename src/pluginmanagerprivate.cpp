@@ -253,8 +253,7 @@ uint16_t PlugMgrPrivate::handleRequest(const char *sender,
     PlugMgrPrivate *_p = PluginManager::instance()._p;
 
     if(_p->useLog)
-        SPDLOG_LOGGER_INFO(_p->log, "Request from {} !", sender);
-
+        JP_LOG_INFO(_p->log, "Request from {}", sender);
     // All requests to the manager sent or receive data, so check here if dataSize is null
     if(!dataSize)
         return IPlugin::DATASIZE_NULL;
@@ -340,7 +339,7 @@ IPlugin* PlugMgrPrivate::getNonDepPlugin(const char* sender, const char* pluginN
     if(_p->pluginsMap[std::string(sender)]->isMainPlugin)
     {
         if(_p->useLog)
-            SPDLOG_LOGGER_INFO(_p->log, "Get plugin object of {} plugin (request from the main plugin)", pluginName);
+            JP_LOG_INFO(_p->log, "Get plugin object of {} plugin (request from the main plugin)", pluginName);
 
         if(_p->pluginManager->isPluginLoaded(pluginName))
             return _p->pluginsMap[std::string(pluginName)]->iplugin.get();

@@ -178,6 +178,9 @@ void PluginManager::setLogger(std::shared_ptr<spdlog::logger> logger)
     } else {
         // 处理空指针情况，恢复默认 logger
         _p->log = spdlog::stdout_color_mt("console");
+  		// 设置日志格式. 参数含义: [日志标识符] [日期] [日志级别] [线程号] [文件名 函数名:行号] [数据]
+  		_p->log->set_pattern("[%n] [%Y-%m-%d %H:%M:%S.%e] [%l] [%t] [%s %!:%#]  %v");
+  		_p->log->set_level(spdlog::level::debug);
     }
 }
 
@@ -191,7 +194,7 @@ void PluginManager::setLogger(std::shared_ptr<spdlog::logger> logger)
 void PluginManager::enableLogOutput(const bool &enable)
 {
     if(!_p->useLog && enable)
-        SPDLOG_LOGGER_INFO(_p->log, "Enable log output");
+        JP_LOG_INFO(_p->log, "Enable log output");
     _p->useLog = enable;
 }
 
@@ -219,7 +222,7 @@ void PluginManager::disableLogOutput()
 ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool recursive, callback callbackFunc)
 {
     if(_p->useLog)
-        SPDLOG_LOGGER_INFO(_p->log, "Search for plugins in {}", pluginDir);
+        JP_LOG_INFO(_p->log, "Search for plugins in {}", pluginDir);
 
     bool atLeastOneFound = false;
     fsutil::PathList libList;
@@ -245,7 +248,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
         {
             // This is a JustPlug library
             if(_p->useLog)
-                SPDLOG_LOGGER_INFO(_p->log, "Found library at: {}", path);
+                JP_LOG_INFO(_p->log, "Found library at: {}", path);
             plugin->path = path;
             std::string name = plugin->lib.get<const char*>("jp_name");;
 
@@ -259,7 +262,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
             }
 
             if(_p->useLog)
-                SPDLOG_LOGGER_INFO(_p->log, "Library name: {}", name);
+                JP_LOG_INFO(_p->log, "Library name: {}", name);
 
             PluginInfoStd info = _p->parseMetadata(plugin->lib.get<const char[]>("jp_metadata"));
             if(info.name.empty())
@@ -273,7 +276,7 @@ ReturnCode PluginManager::searchForPlugins(const std::string &pluginDir, bool re
             plugin->info = info;
             // Print plugin's info
             if(_p->useLog)
-                SPDLOG_LOGGER_INFO(_p->log, info.toString());
+                JP_LOG_INFO(_p->log, "{}", info.toString());
 
             _p->pluginsMap[name] = plugin;
             atLeastOneFound = true;
@@ -347,7 +350,7 @@ ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
     // NOTE: The graph is re-created even if loadPlugins() was already called.
 
     if(_p->useLog)
-        SPDLOG_LOGGER_INFO(_p->log, "Load plugins ...");
+        JP_LOG_INFO(_p->log, "Load plugins ...");
 
     Graph::NodeList nodeList;
     nodeList.reserve(_p->pluginsMap.size());
@@ -401,9 +404,9 @@ ReturnCode PluginManager::loadPlugins(bool tryToContinue, callback callbackFunc)
 
     if(_p->useLog)
     {
-        SPDLOG_LOGGER_INFO(_p->log, "Load order:");
+        JP_LOG_INFO(_p->log, "Load order:");
         for(auto const& name : _p->loadOrderList)
-            SPDLOG_LOGGER_INFO(_p->log, " - {}", name);
+            JP_LOG_INFO(_p->log, " - {}", name);
     }
 
     // Fourth step: load plugins
@@ -445,7 +448,7 @@ ReturnCode PluginManager::loadPlugins(callback callbackFunc)
 ReturnCode PluginManager::unloadPlugins(callback callbackFunc)
 {
     if(_p->useLog)
-        SPDLOG_LOGGER_INFO(_p->log, "Unload plugins ...");
+        JP_LOG_INFO(_p->log, "Unload plugins ...");
 
     if(!_p->unloadPluginsInOrder())
     {
@@ -454,6 +457,9 @@ ReturnCode PluginManager::unloadPlugins(callback callbackFunc)
 
         return ReturnCode::UNLOAD_NOT_ALL;
     }
+    if(_p->useLog)
+        JP_LOG_INFO(_p->log, "All plugins have been unloaded");
+
     return ReturnCode::SUCCESS;
 }
 
@@ -601,4 +607,136 @@ PluginInfo PluginManager::pluginInfo(const std::string &name) const
     if(!hasPlugin(name))
         return PluginInfo();
     return _p->pluginsMap[name]->info.toPluginInfo();
+}
+
+
+bool PluginManager::loadPlugin(const std::string& pluginName)
+{
+    if(_p->useLog)
+        JP_LOG_INFO(_p->log, "Loading plugin: {}", pluginName);
+
+    auto it = _p->pluginsMap.find(pluginName);
+    if (it == _p->pluginsMap.end())
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Plugin {} not found", pluginName);
+        return false;
+    }
+
+    PluginPtr& plugin = it->second;
+    if (plugin->lib.isLoaded())
+    {
+        if (_p->useLog)
+            JP_LOG_INFO(_p->log, "Plugin {} is already loaded", pluginName);
+        return true;
+    }
+
+    ReturnCode retCode = _p->checkDependencies(plugin, nullptr);
+    if (!retCode)
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Failed to load plugin {} due to unmet dependencies", pluginName);
+        return false;
+    }
+
+    _p->loadPlugin(plugin);
+    if (_p->useLog)
+        JP_LOG_INFO(_p->log, "Successfully loaded plugin {}", pluginName);
+
+    return true;
+}
+
+bool PluginManager::loadPluginFromPath(const std::string& pluginPath)
+{
+    PluginPtr plugin(new Plugin());
+    plugin->lib.load(pluginPath);
+
+    if (!plugin->lib.isLoaded())
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Failed to load plugin from path: {}", pluginPath);
+        return false;
+    }
+
+    std::string pluginName = plugin->lib.get<const char*>("jp_name");
+    auto it = _p->pluginsMap.find(pluginName);
+    if (it != _p->pluginsMap.end() && it->second->lib.isLoaded())
+    {
+        if (_p->useLog)
+            JP_LOG_INFO(_p->log, "Plugin {} is already loaded", pluginName);
+        return true;
+    }
+
+    _p->pluginsMap[pluginName] = plugin;
+    ReturnCode retCode = _p->checkDependencies(plugin, nullptr);
+    if (!retCode)
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Failed to load plugin {} due to unmet dependencies", pluginName);
+        return false;
+    }
+
+    _p->loadPlugin(plugin);
+    if (_p->useLog)
+        JP_LOG_INFO(_p->log, "Successfully loaded plugin {} from path: {}", pluginName, pluginPath);
+
+    return true;
+}
+
+bool PluginManager::unloadPlugin(const std::string& pluginName)
+{
+    if(_p->useLog)
+        JP_LOG_INFO(_p->log, "Unloading plugin: {}", pluginName);
+
+    auto it = _p->pluginsMap.find(pluginName);
+    if (it == _p->pluginsMap.end())
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Plugin {} not found", pluginName);
+        return false;
+    }
+
+    PluginPtr& plugin = it->second;
+    if (!plugin->lib.isLoaded())
+    {
+        if (_p->useLog)
+            JP_LOG_INFO(_p->log, "Plugin {} is not loaded", pluginName);
+        return false;
+    }
+
+    // Unload dependent plugins first
+    std::vector<std::string> dependentPlugins;
+    for (const auto& [name, p] : _p->pluginsMap)
+    {
+        for (const auto& dep : p->info.dependencies)
+        {
+            if (dep.name == pluginName && p->lib.isLoaded())
+            {
+                dependentPlugins.push_back(name);
+            }
+        }
+    }
+
+    for (const auto& depName : dependentPlugins)
+    {
+        if (!unloadPlugin(depName))
+        {
+            if (_p->useLog)
+                JP_LOG_ERROR(_p->log, "Failed to unload dependent plugin {}", depName);
+            return false;
+        }
+    }
+
+    if (!_p->unloadPlugin(plugin))
+    {
+        if (_p->useLog)
+            JP_LOG_ERROR(_p->log, "Failed to unload plugin {}", pluginName);
+        return false;
+    }
+    _p->pluginsMap.erase(pluginName);
+
+    if (_p->useLog)
+        JP_LOG_INFO(_p->log, "Successfully unloaded plugin {}", pluginName);
+
+    return true;
 }
